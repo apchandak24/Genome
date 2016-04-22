@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 import com.GenomeData.Model.Probe;
 
@@ -14,6 +13,8 @@ public class DatabaseService {
 
 	private static final String PROBE_TABLE_NAME = "probe";
 	private static final String NAME_INDEX = "name_index";
+	private static final String START_INDEX = "start_index";
+	private static final String FILE_PATH = "Probes/probes.txt";
 
 	/**
 	 * Create the probe table if it is not present in database. This can be
@@ -22,7 +23,7 @@ public class DatabaseService {
 	 * 
 	 * @param dbConnection
 	 */
-	private void createProbeTable(Connection dbConnection) throws SQLException {
+	public boolean createProbeTable(Connection dbConnection){
 		Statement stmt = null;
 		try {
 			stmt = dbConnection.createStatement();
@@ -31,7 +32,9 @@ public class DatabaseService {
 					+ " start BIGINT, end BIGINT, value DOUBLE, " + " PRIMARY KEY ( id ) " + " )";
 			stmt.executeUpdate(query);
 
-			createIndex(dbConnection);
+			createNameIndex(dbConnection);
+			createStartIndex(dbConnection);
+			return true;
 		} catch (SQLException exception) {
 			exception.printStackTrace();
 			System.out.println(exception.getMessage());
@@ -43,23 +46,51 @@ public class DatabaseService {
 					e.printStackTrace();
 				}
 		}
+		return false;
 
 	}
+
 	/**
 	 * Create index on the table by chromosome name
+	 * 
 	 * @param dbConnection
 	 */
 
-	private void createIndex(Connection dbConnection) {
+	private void createNameIndex(Connection dbConnection) {
 		Statement stmt = null;
-		if (checkIfIndexExists(dbConnection)) {
+		if (checkIfNameIndexExists(dbConnection)) {
 			try {
 				stmt = dbConnection.createStatement();
 				String query = "CREATE Index " + NAME_INDEX + " ON " + PROBE_TABLE_NAME + " (name) USING HASH";
 				stmt.executeUpdate(query);
 			} catch (SQLException exception) {
 				exception.printStackTrace();
-				System.out.println(exception.getMessage());
+			} finally {
+				if (stmt != null)
+					try {
+						stmt.close();
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+			}
+		}
+	}
+	
+	/**
+	 * Create index on the table by start value
+	 * 
+	 * @param dbConnection
+	 */
+
+	private void createStartIndex(Connection dbConnection) {
+		Statement stmt = null;
+		if (checkIfStartIndexExists(dbConnection)) {
+			try {
+				stmt = dbConnection.createStatement();
+				String query = "CREATE Index " + START_INDEX + " ON " + PROBE_TABLE_NAME + " (start) USING BTREE";
+				stmt.executeUpdate(query);
+			} catch (SQLException exception) {
+				exception.printStackTrace();
 			} finally {
 				if (stmt != null)
 					try {
@@ -71,7 +102,14 @@ public class DatabaseService {
 		}
 	}
 
-	private boolean checkIfIndexExists(Connection dbConnection) {
+	/**
+	 * Check if name index already exists
+	 * 
+	 * @param dbConnection
+	 * @return
+	 */
+
+	private boolean checkIfNameIndexExists(Connection dbConnection) {
 		PreparedStatement stmt = null;
 		try {
 
@@ -82,10 +120,46 @@ public class DatabaseService {
 			stmt.setString(2, NAME_INDEX);
 			ResultSet result = stmt.executeQuery();
 			int cnt = 0;
-			
-				while (result.next()) {
-					cnt = result.getInt("IndexIsThere");
+
+			while (result.next()) {
+				cnt = result.getInt("IndexIsThere");
+			}
+			return cnt == 0 ? false : true;
+
+		} catch (SQLException exception) {
+			exception.printStackTrace();
+		} finally {
+			if (stmt != null)
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
 				}
+		}
+		return false;
+	}
+	/**
+	 * Check if start index already exists
+	 * 
+	 * @param dbConnection
+	 * @return
+	 */
+
+	private boolean checkIfStartIndexExists(Connection dbConnection) {
+		PreparedStatement stmt = null;
+		try {
+
+			String query = "SELECT COUNT(1) IndexIsThere FROM INFORMATION_SCHEMA.STATISTICS WHERE "
+					+ "table_schema=DATABASE() AND table_name Like ? AND index_name Like ? ";
+			stmt = dbConnection.prepareStatement(query);
+			stmt.setString(1, PROBE_TABLE_NAME);
+			stmt.setString(2, START_INDEX);
+			ResultSet result = stmt.executeQuery();
+			int cnt = 0;
+
+			while (result.next()) {
+				cnt = result.getInt("IndexIsThere");
+			}
 			return cnt == 0 ? false : true;
 
 		} catch (SQLException exception) {
@@ -101,45 +175,11 @@ public class DatabaseService {
 		return false;
 	}
 
-	public boolean insertData(LinkedList<Probe> probes, Connection dbConnection) {
-		PreparedStatement stmt = null;
-		try {
-			createProbeTable(dbConnection);
-
-			String query = "INSERT INTO " + PROBE_TABLE_NAME + " (name, start, end, value) VALUES" + "(?,?,?,?)";
-			stmt = dbConnection.prepareStatement(query);
-			int cnt = 0;
-			for (Probe probe : probes) {
-				stmt.setString(1, probe.getName());
-				stmt.setLong(2, probe.getStart());
-				stmt.setLong(3, probe.getEnd());
-				stmt.setDouble(4, probe.getValue());
-				stmt.addBatch();
-				cnt++;
-				if ((cnt % 1000) == 0 || cnt == probes.size()) {
-					System.out.println("added " + cnt / 1000 + " batch");
-					stmt.executeBatch();
-				}
-			}
-			return true;
-		} catch (SQLException exception) {
-			exception.printStackTrace();
-		} finally {
-			if (stmt != null)
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-		}
-		return false;
-	}
-
 	/**
-	 * Get the list of symbols entered by user from database
+	 * Get the list of probe for a single chromosome between specified start and end values 
 	 * 
 	 * @param dbConnection
-	 * @return ArrayList<Symbol>
+	 * @return ArrayList<Probe>
 	 */
 	public ArrayList<Probe> getProbeList(Connection dbConnection, Probe probe) {
 		ArrayList<Probe> probes = new ArrayList<Probe>();
@@ -174,6 +214,33 @@ public class DatabaseService {
 				}
 		}
 		return probes;
+	}
+	/**
+	 * Load the probe.txt data from location Probes/probes.txt
+	 * @param dbConnection
+	 */
+	
+	public void loadFileData(Connection dbConnection){
+		
+		String esquel = " LOAD DATA LOCAL INFILE '" + FILE_PATH +
+                "' INTO TABLE probe IGNORE 1 lines(name,start,end,value) " ;
+		Statement stmtq = null;
+		try {
+			stmtq = dbConnection.createStatement();
+			stmtq.executeUpdate(esquel);
+		}catch (SQLException exception) {
+			exception.printStackTrace();
+			System.out.println(exception.getMessage());
+		} finally {
+			if (stmtq != null)
+				try {
+					stmtq.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+		}
+
+		
 	}
 
 }
