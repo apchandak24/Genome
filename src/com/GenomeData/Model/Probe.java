@@ -6,6 +6,9 @@ public class Probe {
 	private long start;
 	private long end;
 	private double value;
+	public Probe(String name){
+		this.name = name;
+	}
 	
 	public Probe(String name,long start,long end,double value){
 		this.name = name;

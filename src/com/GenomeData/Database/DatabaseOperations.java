@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 import com.GenomeData.Model.Probe;
 
-public class DatabaseService {
+public class DatabaseOperations {
 
 	private static final String PROBE_TABLE_NAME = "probe";
 	private static final String NAME_INDEX = "name_index";
@@ -215,6 +215,113 @@ public class DatabaseService {
 		}
 		return probes;
 	}
+	/**
+	 * Get the list of probe for a single chromosome between for values greater than given base value
+	 * 
+	 * @param dbConnection
+	 * @return ArrayList<Probe>
+	 */
+	public ArrayList<Probe> getProbeListStart(Connection dbConnection, Probe probe) {
+		ArrayList<Probe> probes = new ArrayList<Probe>();
+		PreparedStatement stmt = null;
+		try {
+
+			String query = "SELECT * from " + PROBE_TABLE_NAME
+					+ " where ( name Like ? ) AND ( start >= ?)";
+			stmt = dbConnection.prepareStatement(query);
+			stmt.setString(1, probe.getName());
+			stmt.setLong(2, probe.getStart());
+			System.out.println(stmt.toString());
+			ResultSet result = stmt.executeQuery();
+			while (result.next()) {
+				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
+						result.getDouble("value"));
+				probes.add(p);
+			}
+		} catch (SQLException exception) {
+			exception.printStackTrace();
+		} finally {
+			if (stmt != null)
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+		}
+		return probes;
+	}
+	/**
+	 * Get the list of probe for a single chromosome between for values less than given base value
+	 * 
+	 * @param dbConnection
+	 * @return ArrayList<Probe>
+	 */
+	public ArrayList<Probe> getProbeListEnd(Connection dbConnection, Probe probe) {
+		ArrayList<Probe> probes = new ArrayList<Probe>();
+		PreparedStatement stmt = null;
+		try {
+
+			String query = "SELECT * from " + PROBE_TABLE_NAME
+					+ " where ( name Like ? ) AND ( start <= ?)";
+			stmt = dbConnection.prepareStatement(query);
+			stmt.setString(1, probe.getName());
+			stmt.setLong(2, probe.getStart());
+			System.out.println(stmt.toString());
+			ResultSet result = stmt.executeQuery();
+			while (result.next()) {
+				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
+						result.getDouble("value"));
+				probes.add(p);
+			}
+		} catch (SQLException exception) {
+			exception.printStackTrace();
+		} finally {
+			if (stmt != null)
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+		}
+		return probes;
+	}
+	
+	/**
+	 * Get the list of probe for a single chromosome
+	 * 
+	 * @param dbConnection
+	 * @return ArrayList<Probe>
+	 */
+	public ArrayList<Probe> getProbeListByName(Connection dbConnection, Probe probe) {
+		ArrayList<Probe> probes = new ArrayList<Probe>();
+		PreparedStatement stmt = null;
+		try {
+
+			String query = "SELECT * from " + PROBE_TABLE_NAME
+					+ " where ( name Like ? )";
+			stmt = dbConnection.prepareStatement(query);
+			stmt.setString(1, probe.getName());
+			System.out.println(stmt.toString());
+			ResultSet result = stmt.executeQuery();
+			while (result.next()) {
+				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
+						result.getDouble("value"));
+				probes.add(p);
+			}
+		} catch (SQLException exception) {
+			exception.printStackTrace();
+		} finally {
+			if (stmt != null)
+				try {
+					stmt.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+		}
+		return probes;
+	}
+	
+	
 	/**
 	 * Load the probe.txt data from location Probes/probes.txt
 	 * @param dbConnection
