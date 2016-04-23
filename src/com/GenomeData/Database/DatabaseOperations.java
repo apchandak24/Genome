@@ -6,6 +6,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.GenomeData.Model.Probe;
 
@@ -15,6 +17,7 @@ public class DatabaseOperations {
 	private static final String NAME_INDEX = "name_index";
 	private static final String START_INDEX = "start_index";
 	private static final String FILE_PATH = "Probes/probes.txt";
+	private final static Logger LOGGER = Logger.getLogger(DatabaseOperations.class.getName());
 
 	/**
 	 * Create the probe table if it is not present in database. This can be
@@ -23,7 +26,7 @@ public class DatabaseOperations {
 	 * 
 	 * @param dbConnection
 	 */
-	public boolean createProbeTable(Connection dbConnection){
+	public boolean createProbeTable(Connection dbConnection) {
 		Statement stmt = null;
 		try {
 			stmt = dbConnection.createStatement();
@@ -31,13 +34,12 @@ public class DatabaseOperations {
 					+ " id BIGINT NOT NULL AUTO_INCREMENT , " + " name VARCHAR(255), "
 					+ " start BIGINT, end BIGINT, value DOUBLE, " + " PRIMARY KEY ( id ) " + " )";
 			stmt.executeUpdate(query);
-
+			LOGGER.log(Level.INFO, query);
 			createNameIndex(dbConnection);
 			createStartIndex(dbConnection);
 			return true;
 		} catch (SQLException exception) {
 			exception.printStackTrace();
-			System.out.println(exception.getMessage());
 		} finally {
 			if (stmt != null)
 				try {
@@ -63,6 +65,7 @@ public class DatabaseOperations {
 				stmt = dbConnection.createStatement();
 				String query = "CREATE Index " + NAME_INDEX + " ON " + PROBE_TABLE_NAME + " (name) USING HASH";
 				stmt.executeUpdate(query);
+				LOGGER.log(Level.INFO, stmt.toString());
 			} catch (SQLException exception) {
 				exception.printStackTrace();
 			} finally {
@@ -75,7 +78,7 @@ public class DatabaseOperations {
 			}
 		}
 	}
-	
+
 	/**
 	 * Create index on the table by start value
 	 * 
@@ -89,6 +92,7 @@ public class DatabaseOperations {
 				stmt = dbConnection.createStatement();
 				String query = "CREATE Index " + START_INDEX + " ON " + PROBE_TABLE_NAME + " (start) USING BTREE";
 				stmt.executeUpdate(query);
+				LOGGER.log(Level.INFO, stmt.toString());
 			} catch (SQLException exception) {
 				exception.printStackTrace();
 			} finally {
@@ -120,7 +124,6 @@ public class DatabaseOperations {
 			stmt.setString(2, NAME_INDEX);
 			ResultSet result = stmt.executeQuery();
 			int cnt = 0;
-
 			while (result.next()) {
 				cnt = result.getInt("IndexIsThere");
 			}
@@ -138,6 +141,7 @@ public class DatabaseOperations {
 		}
 		return false;
 	}
+
 	/**
 	 * Check if start index already exists
 	 * 
@@ -176,7 +180,8 @@ public class DatabaseOperations {
 	}
 
 	/**
-	 * Get the list of probe for a single chromosome between specified start and end values 
+	 * Get the list of probe for a single chromosome between specified start and
+	 * end values
 	 * 
 	 * @param dbConnection
 	 * @return ArrayList<Probe>
@@ -197,6 +202,7 @@ public class DatabaseOperations {
 			stmt.setLong(5, probe.getEnd());
 			stmt.setLong(6, probe.getEnd());
 			stmt.setLong(7, probe.getEnd());
+			LOGGER.log(Level.INFO, stmt.toString());
 			ResultSet result = stmt.executeQuery();
 			while (result.next()) {
 				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
@@ -215,23 +221,51 @@ public class DatabaseOperations {
 		}
 		return probes;
 	}
+
+	
+
 	/**
-	 * Get the list of probe for a single chromosome between for values greater than given base value
+	 * Get the list of probe for a list of chromosome
 	 * 
 	 * @param dbConnection
 	 * @return ArrayList<Probe>
 	 */
-	public ArrayList<Probe> getProbeListStart(Connection dbConnection, Probe probe) {
+	public ArrayList<Probe> getMultipleProbeListByNames(Connection dbConnection, ArrayList<Probe> probe, Probe p1, Probe p2) {
 		ArrayList<Probe> probes = new ArrayList<Probe>();
 		PreparedStatement stmt = null;
 		try {
+			StringBuilder str = new StringBuilder("SELECT * from " + PROBE_TABLE_NAME + " where ");
+			str.append("( name Like ?  AND  start >= ? ) ");
+			if (p2 != null) {
+				str.append(" OR ( ");
+				if (probe.size() == 1)
+					str.append(" name Like ? ) OR (");
+				else {
+					for (int i = 0; i < probe.size() - 1; i++) {
+						str.append(" name Like ? OR");
+					}
 
-			String query = "SELECT * from " + PROBE_TABLE_NAME
-					+ " where ( name Like ? ) AND ( start >= ?)";
-			stmt = dbConnection.prepareStatement(query);
-			stmt.setString(1, probe.getName());
-			stmt.setLong(2, probe.getStart());
-			System.out.println(stmt.toString());
+					if (probe.size() != 0)
+						str.append(" name Like ? ) OR ( ");
+				}
+				str.append("  name Like ?  AND  start <= ? ) ");
+			}
+			stmt = dbConnection.prepareStatement(str.toString());
+
+			stmt.setString(1, p1.getName());
+			stmt.setLong(2, p1.getStart());
+
+			int cnt = 3;
+			for (int i = 0; i < probe.size(); i++) {
+				stmt.setString(cnt, probe.get(i).getName());
+				cnt++;
+			}
+			if (p2 != null) {
+				stmt.setString(cnt, p2.getName());
+				cnt++;
+				stmt.setLong(cnt, p2.getStart());
+			}
+			LOGGER.log(Level.INFO, stmt.toString());
 			ResultSet result = stmt.executeQuery();
 			while (result.next()) {
 				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
@@ -250,104 +284,33 @@ public class DatabaseOperations {
 		}
 		return probes;
 	}
-	/**
-	 * Get the list of probe for a single chromosome between for values less than given base value
-	 * 
-	 * @param dbConnection
-	 * @return ArrayList<Probe>
-	 */
-	public ArrayList<Probe> getProbeListEnd(Connection dbConnection, Probe probe) {
-		ArrayList<Probe> probes = new ArrayList<Probe>();
-		PreparedStatement stmt = null;
-		try {
 
-			String query = "SELECT * from " + PROBE_TABLE_NAME
-					+ " where ( name Like ? ) AND ( start <= ?)";
-			stmt = dbConnection.prepareStatement(query);
-			stmt.setString(1, probe.getName());
-			stmt.setLong(2, probe.getStart());
-			System.out.println(stmt.toString());
-			ResultSet result = stmt.executeQuery();
-			while (result.next()) {
-				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
-						result.getDouble("value"));
-				probes.add(p);
-			}
-		} catch (SQLException exception) {
-			exception.printStackTrace();
-		} finally {
-			if (stmt != null)
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-		}
-		return probes;
-	}
-	
-	/**
-	 * Get the list of probe for a single chromosome
-	 * 
-	 * @param dbConnection
-	 * @return ArrayList<Probe>
-	 */
-	public ArrayList<Probe> getProbeListByName(Connection dbConnection, Probe probe) {
-		ArrayList<Probe> probes = new ArrayList<Probe>();
-		PreparedStatement stmt = null;
-		try {
-
-			String query = "SELECT * from " + PROBE_TABLE_NAME
-					+ " where ( name Like ? )";
-			stmt = dbConnection.prepareStatement(query);
-			stmt.setString(1, probe.getName());
-			System.out.println(stmt.toString());
-			ResultSet result = stmt.executeQuery();
-			while (result.next()) {
-				Probe p = new Probe(result.getString("name"), result.getLong("start"), result.getLong("end"),
-						result.getDouble("value"));
-				probes.add(p);
-			}
-		} catch (SQLException exception) {
-			exception.printStackTrace();
-		} finally {
-			if (stmt != null)
-				try {
-					stmt.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-		}
-		return probes;
-	}
-	
-	
 	/**
 	 * Load the probe.txt data from location Probes/probes.txt
+	 * 
 	 * @param dbConnection
 	 */
-	
-	public void loadFileData(Connection dbConnection){
-		
-		String esquel = " LOAD DATA LOCAL INFILE '" + FILE_PATH +
-                "' INTO TABLE probe IGNORE 1 lines(name,start,end,value) " ;
-		Statement stmtq = null;
+
+	public void loadFileData(Connection dbConnection) {
+
+		String query = " LOAD DATA LOCAL INFILE '" + FILE_PATH
+				+ "' INTO TABLE probe IGNORE 1 lines(name,start,end,value) ";
+		Statement stmt = null;
 		try {
-			stmtq = dbConnection.createStatement();
-			stmtq.executeUpdate(esquel);
-		}catch (SQLException exception) {
+			stmt = dbConnection.createStatement();
+			LOGGER.log(Level.INFO, query);
+			stmt.executeUpdate(query);
+		} catch (SQLException exception) {
 			exception.printStackTrace();
-			System.out.println(exception.getMessage());
 		} finally {
-			if (stmtq != null)
+			if (stmt != null)
 				try {
-					stmtq.close();
+					stmt.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
 		}
 
-		
 	}
 
 }

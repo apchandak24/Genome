@@ -7,15 +7,18 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.Date;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingWorker;
 import javax.swing.table.TableColumnModel;
 
 import com.GenomeData.Controller.Controller;
@@ -34,7 +37,12 @@ public class UserInterface {
 	private ResultTable mResultTable;
 	private ArrayList<Probe> resultList = new ArrayList<>();
 	private JLabel resultLabel;
-
+	private JTextField startBase1;
+	private JTextField startBase2;
+	private JComboBox<String> chrComboBox1;
+	private JComboBox<String> chrComboBox2;
+	private JProgressBar bar;
+	long startTime;
 	public UserInterface(Controller mController) {
 		this.mController = mController;
 		createUI();
@@ -59,10 +67,19 @@ public class UserInterface {
 		createRangeQueryPanel();
 		createBaseQueryPanel();
 		createResultPanel();
+
+		bar = new JProgressBar();
+		bar.setIndeterminate(true);
+		bar.setStringPainted(true);
+		bar.setString("Fetching data..");
+		bar.setVisible(false);
+
 		mainFrame.add(queryPanelRange);
 		mainFrame.add(queryPanelBase);
+		mainFrame.add(bar);
 		mainFrame.add(resultLabel);
 		mainFrame.add(resultPanel);
+		
 		mainFrame.setVisible(true);
 
 	}
@@ -88,12 +105,12 @@ public class UserInterface {
 	}
 
 	private void createBaseQueryPanel() {
-		JComboBox<String> chrComboBox1 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
-		JComboBox<String> chrComboBox2 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
+		chrComboBox1 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
+		chrComboBox2 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
 		JLabel base1 = new JLabel("Base");
 		JLabel base2 = new JLabel("Base");
-		JTextField startBase1 = new JTextField(8);
-		JTextField startBase2 = new JTextField(8);
+		startBase1 = new JTextField(8);
+		startBase2 = new JTextField(8);
 		JButton getResultBase = new JButton("Get Result");
 		getResultBase.setActionCommand("Base");
 		getResultBase.addActionListener(new ClickListener());
@@ -127,19 +144,70 @@ public class UserInterface {
 			switch (e.getActionCommand()) {
 			case "Range":
 				try {
-					String name = (String) chrComboBox.getSelectedItem();
-					long startVal = Long.parseLong(start.getText().trim());
-					long endVal = Long.parseLong(end.getText().trim());
-					resultList = mController.getResultSingleChromosome(new Probe(name, startVal, endVal, 0));
-					mResultTable.setProbes(resultList);
-					mResultTable.fireTableDataChanged();
-					resultLabel.setText("Total records fetched: "+resultList.size());
+					final String name = (String) chrComboBox.getSelectedItem();
+					final long startVal = Long.parseLong(start.getText().trim());
+					final long endVal = Long.parseLong(end.getText().trim());
+					SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>()
+					{
+					    @Override
+					    protected Void doInBackground()
+					    {
+					    	startTime = new Date().getTime();
+					    	bar.setVisible(true);
+					    	resultList = mController.getResultSingleChromosome(new Probe(name, startVal, endVal, 0));
+							mResultTable.setProbes(resultList);
+							return null;
+					    }
+					    @Override
+					    protected void done()
+					    {
+					    	long elapse = new Date().getTime()-startTime;
+					    	bar.setVisible(false);
+					    	mResultTable.fireTableDataChanged();
+							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000)+" seconds");
+					    }
+					};
+					worker.execute();
 				} catch (NumberFormatException exception) {
 					resultLabel.setText("Please enter numeric values");
 				}
 				break;
 			case "Base":
-
+				try {
+					String chr1 = (String) chrComboBox1.getSelectedItem();
+					String chr2 = (String) chrComboBox2.getSelectedItem();
+					long base1 = Long.parseLong(startBase1.getText().trim());
+					long base2 = Long.parseLong(startBase2.getText().trim());
+					final Probe p1 = new Probe(chr1);
+					p1.setStart(base1);
+					final Probe p2 = new Probe(chr2);
+					p2.setStart(base2);
+					
+					SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>()
+					{
+					    @Override
+					    protected Void doInBackground()
+					    {
+					    	startTime = new Date().getTime();
+					    	bar.setVisible(true);
+					    	resultList  = mController.getResultMultipleChromosome(p1, p2);
+							mResultTable.setProbes(resultList);
+							return null;
+					    }
+					 
+					    @Override
+					    protected void done()
+					    {
+					    	long elapse = new Date().getTime()-startTime;
+					    	bar.setVisible(false);
+					    	mResultTable.fireTableDataChanged();
+							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000)+" seconds");
+					    }
+					};
+					worker.execute();
+				} catch (NumberFormatException exception) {
+					resultLabel.setText("Please enter numeric values");
+				}
 				break;
 			default:
 				break;
