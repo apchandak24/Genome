@@ -21,6 +21,7 @@ public class Controller {
 
 	/**
 	 * Get the list of values for single chromosome between specified range
+	 * 
 	 * @param query
 	 * @return
 	 */
@@ -28,8 +29,10 @@ public class Controller {
 		Connection dbConnection = DatabaseHelper.getConnection(PropertiesInstance.getInstance().getProperties());
 		ArrayList<Probe> probes = new ArrayList<Probe>();
 		try {
-			if (dbConnection != null) {
-				probes = dbService.getProbeList(dbConnection, query);
+			if (query.getEnd() > query.getStart()) {
+				if (dbConnection != null) {
+					probes = dbService.getProbeList(dbConnection, query);
+				}
 			}
 		} finally {
 			if (dbConnection != null)
@@ -42,8 +45,10 @@ public class Controller {
 		return probes;
 
 	}
+
 	/**
-	 * Get the list of values for multiple chromosomes 
+	 * Get the list of values for multiple chromosomes
+	 * 
 	 * @param query
 	 * @return
 	 */
@@ -51,7 +56,7 @@ public class Controller {
 		Connection dbConnection = DatabaseHelper.getConnection(PropertiesInstance.getInstance().getProperties());
 		ArrayList<Probe> probes = new ArrayList<Probe>();
 		try {
-			String [] chrName = Constants.CHROMOSOME_NAMES;
+			String[] chrName = Constants.CHROMOSOME_NAMES;
 			int sIndex = Arrays.asList(chrName).indexOf(p1.getName());
 			int eIndex = Arrays.asList(chrName).indexOf(p2.getName());
 			ArrayList<Probe> queryProbes = new ArrayList<>();
@@ -60,10 +65,10 @@ public class Controller {
 					Probe p = new Probe(chrName[i]);
 					queryProbes.add(p);
 				}
-				if(sIndex==eIndex)
-					p2=null;
-				
-				probes.addAll(dbService.getMultipleProbeListByNames(dbConnection, queryProbes,p1,p2));
+				if (sIndex == eIndex)
+					p2 = null;
+
+				probes.addAll(dbService.getMultipleProbeListByNames(dbConnection, queryProbes, p1, p2));
 			}
 
 		} finally {
@@ -76,11 +81,13 @@ public class Controller {
 		}
 		return probes;
 	}
+
 	/**
 	 * Create table probe
+	 * 
 	 * @return
 	 */
-	public  boolean createDatabase() {
+	public boolean createDatabase() {
 		Connection dbConnection = DatabaseHelper.getConnection(PropertiesInstance.getInstance().getProperties());
 		try {
 			return dbService.createProbeTable(dbConnection);
@@ -93,6 +100,7 @@ public class Controller {
 				}
 		}
 	}
+
 	/**
 	 * Load probes.txt into database
 	 */
