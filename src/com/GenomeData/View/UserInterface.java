@@ -164,7 +164,7 @@ public class UserInterface {
 					    	long elapse = new Date().getTime()-startTime;
 					    	bar.setVisible(false);
 					    	mResultTable.fireTableDataChanged();
-							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000)+" seconds");
+							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000.0)+" seconds");
 					    }
 					};
 					worker.execute();
@@ -201,7 +201,7 @@ public class UserInterface {
 					    	long elapse = new Date().getTime()-startTime;
 					    	bar.setVisible(false);
 					    	mResultTable.fireTableDataChanged();
-							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000)+" seconds");
+							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000.0)+" seconds");
 					    }
 					};
 					worker.execute();

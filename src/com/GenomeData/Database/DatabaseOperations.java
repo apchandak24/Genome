@@ -60,7 +60,7 @@ public class DatabaseOperations {
 
 	private void createNameIndex(Connection dbConnection) {
 		Statement stmt = null;
-		if (checkIfNameIndexExists(dbConnection)) {
+		if (!checkIfNameIndexExists(dbConnection)) {
 			try {
 				stmt = dbConnection.createStatement();
 				String query = "CREATE Index " + NAME_INDEX + " ON " + PROBE_TABLE_NAME + " (name) USING HASH";
@@ -87,7 +87,7 @@ public class DatabaseOperations {
 
 	private void createStartIndex(Connection dbConnection) {
 		Statement stmt = null;
-		if (checkIfStartIndexExists(dbConnection)) {
+		if (!checkIfStartIndexExists(dbConnection)) {
 			try {
 				stmt = dbConnection.createStatement();
 				String query = "CREATE Index " + START_INDEX + " ON " + PROBE_TABLE_NAME + " (start) USING BTREE";
