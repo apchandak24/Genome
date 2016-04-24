@@ -299,6 +299,7 @@ public class DatabaseOperations {
 		try {
 			stmt = dbConnection.createStatement();
 			LOGGER.log(Level.INFO, query);
+			System.out.println("Populating data....please wait");
 			stmt.executeUpdate(query);
 		} catch (SQLException exception) {
 			exception.printStackTrace();
