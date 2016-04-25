@@ -11,6 +11,11 @@ import com.GenomeData.Database.PropertiesInstance;
 import com.GenomeData.Model.Probe;
 import com.GenomeData.Utils.Constants;
 
+/**
+ * Controller which takes input from MainActivityUI and handles it to database service class
+ * @author ankita
+ *
+ */
 public class Controller {
 	private DatabaseOperations dbService;
 

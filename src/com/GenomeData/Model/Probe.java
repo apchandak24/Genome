@@ -1,5 +1,9 @@
 package com.GenomeData.Model;
-
+/**
+ * Model class to save Probe result
+ * @author ankita
+ *
+ */
 public class Probe {
 	
 	private String name;

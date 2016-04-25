@@ -25,6 +25,12 @@ import com.GenomeData.Controller.Controller;
 import com.GenomeData.Model.Probe;
 import com.GenomeData.Utils.Constants;
 
+/**
+ * Create Swing interface and handle user interaction
+ * 
+ * @author ankita
+ *
+ */
 public class UserInterface {
 	private JFrame mainFrame;
 	private JPanel queryPanelRange;
@@ -43,6 +49,7 @@ public class UserInterface {
 	private JComboBox<String> chrComboBox2;
 	private JProgressBar bar;
 	long startTime;
+
 	public UserInterface(Controller mController) {
 		this.mController = mController;
 		createUI();
@@ -79,10 +86,14 @@ public class UserInterface {
 		mainFrame.add(bar);
 		mainFrame.add(resultLabel);
 		mainFrame.add(resultPanel);
-		
+
 		mainFrame.setVisible(true);
 
 	}
+
+	/**
+	 * Create range query panel
+	 */
 
 	private void createRangeQueryPanel() {
 		chrComboBox = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
@@ -104,6 +115,9 @@ public class UserInterface {
 
 	}
 
+	/**
+	 * Create base query panel
+	 */
 	private void createBaseQueryPanel() {
 		chrComboBox1 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
 		chrComboBox2 = new JComboBox<String>(Constants.CHROMOSOME_NAMES);
@@ -125,6 +139,9 @@ public class UserInterface {
 
 	}
 
+	/**
+	 * Create Result panel to show the data
+	 */
 	private void createResultPanel() {
 		mResultTable = new ResultTable(resultList);
 		JTable table = new JTable(mResultTable);
@@ -147,25 +164,24 @@ public class UserInterface {
 					final String name = (String) chrComboBox.getSelectedItem();
 					final long startVal = Long.parseLong(start.getText().trim());
 					final long endVal = Long.parseLong(end.getText().trim());
-					SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>()
-					{
-					    @Override
-					    protected Void doInBackground()
-					    {
-					    	startTime = new Date().getTime();
-					    	bar.setVisible(true);
-					    	resultList = mController.getResultSingleChromosome(new Probe(name, startVal, endVal, 0));
+					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+						@Override
+						protected Void doInBackground() {
+							startTime = new Date().getTime();
+							bar.setVisible(true);
+							resultList = mController.getResultSingleChromosome(new Probe(name, startVal, endVal, 0));
 							mResultTable.setProbes(resultList);
 							return null;
-					    }
-					    @Override
-					    protected void done()
-					    {
-					    	long elapse = new Date().getTime()-startTime;
-					    	bar.setVisible(false);
-					    	mResultTable.fireTableDataChanged();
-							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000.0)+" seconds");
-					    }
+						}
+
+						@Override
+						protected void done() {
+							long elapse = new Date().getTime() - startTime;
+							bar.setVisible(false);
+							mResultTable.fireTableDataChanged();
+							resultLabel.setText("Total records fetched: " + resultList.size() + " in "
+									+ (elapse / 1000.0) + " seconds");
+						}
 					};
 					worker.execute();
 				} catch (NumberFormatException exception) {
@@ -182,27 +198,25 @@ public class UserInterface {
 					p1.setStart(base1);
 					final Probe p2 = new Probe(chr2);
 					p2.setStart(base2);
-					
-					SwingWorker<Void,Void> worker = new SwingWorker<Void,Void>()
-					{
-					    @Override
-					    protected Void doInBackground()
-					    {
-					    	startTime = new Date().getTime();
-					    	bar.setVisible(true);
-					    	resultList  = mController.getResultMultipleChromosome(p1, p2);
+
+					SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+						@Override
+						protected Void doInBackground() {
+							startTime = new Date().getTime();
+							bar.setVisible(true);
+							resultList = mController.getResultMultipleChromosome(p1, p2);
 							mResultTable.setProbes(resultList);
 							return null;
-					    }
-					 
-					    @Override
-					    protected void done()
-					    {
-					    	long elapse = new Date().getTime()-startTime;
-					    	bar.setVisible(false);
-					    	mResultTable.fireTableDataChanged();
-							resultLabel.setText("Total records fetched: " + resultList.size()+" in "+(elapse/1000.0)+" seconds");
-					    }
+						}
+
+						@Override
+						protected void done() {
+							long elapse = new Date().getTime() - startTime;
+							bar.setVisible(false);
+							mResultTable.fireTableDataChanged();
+							resultLabel.setText("Total records fetched: " + resultList.size() + " in "
+									+ (elapse / 1000.0) + " seconds");
+						}
 					};
 					worker.execute();
 				} catch (NumberFormatException exception) {

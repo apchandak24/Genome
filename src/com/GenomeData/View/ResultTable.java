@@ -5,7 +5,11 @@ import java.util.ArrayList;
 import javax.swing.table.AbstractTableModel;
 
 import com.GenomeData.Model.Probe;
-
+/**
+ * Swing table class implementation 
+ * @author ankita
+ *
+ */
 public class ResultTable extends AbstractTableModel {
 	/**
 	 * 

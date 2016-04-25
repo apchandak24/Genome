@@ -10,7 +10,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.GenomeData.Model.Probe;
-
+/**
+ * Helper class to interact with database
+ * @author ankita
+ *
+ */
 public class DatabaseOperations {
 
 	private static final String PROBE_TABLE_NAME = "probe";

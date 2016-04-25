@@ -4,7 +4,11 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 import com.GenomeData.Controller.Controller;
-
+/**
+ * Main class to create and populate the database
+ * @author ankita
+ *
+ */
 public class MainActivity {
 	private final static Logger LOGGER = Logger.getLogger(MainActivity.class.getName()); 
 	public static void main(String[] args) {
